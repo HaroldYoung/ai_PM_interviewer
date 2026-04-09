@@ -1,5 +1,12 @@
 # PM Interview Protocol v2.0 — 系统文档
 
+## 案例示范
+以下是不同回答效果和评判结果，根据回答内容的结构表达、数据意识、产品判断、复盘深度、语言表达进行综合评分，如果有语音输入则将语音输入也纳入评分
+<img width="2514" height="1203" alt="3e6676476b8a97c35feea8a242176d59" src="https://github.com/user-attachments/assets/0fc233ec-cb19-41e8-bb3b-b1ec1a2ccb2e" />
+<img width="2559" height="1347" alt="509dd0fe630c60a0533b1d7b5500edef" src="https://github.com/user-attachments/assets/2176ce1c-a43a-47d7-a66b-e77124ca37a2" />
+<img width="2559" height="1347" alt="bc790a6f877e1d7fd7691a48f0b7a131" src="https://github.com/user-attachments/assets/79415546-49c4-447c-bda1-d95e6c46a20f" />
+<img width="2559" height="1347" alt="04afd13848c48cee02747b8ad0e9294b" src="https://github.com/user-attachments/assets/9e09359b-6a0a-416c-80f4-820fb8c06266" />
+
 ## 一、项目概述
 
 PM Interview Protocol 是一个前后端分离的产品经理面试模拟系统，支持：
