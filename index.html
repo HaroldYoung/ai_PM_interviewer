@@ -1,0 +1,1038 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PM Interview Protocol</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#060708;--bg2:#10141b;--panel:#151b24;--panel2:#1b2230;
+  --line:rgba(255,255,255,.09);--line2:rgba(255,255,255,.16);
+  --txt:#f3efe7;--muted:#7e8897;
+  --red:#d62839;--amber:#f5a65b;--green:#62d394;--blue:#5bc4f5;
+  --mono:'IBM Plex Mono',monospace;--head:'Oswald',sans-serif;--body:'Noto Sans SC',sans-serif;
+  --shadow:0 18px 50px rgba(0,0,0,.25)
+}
+html,body{height:100%;overflow:hidden}
+body{font-family:var(--body);color:var(--txt);
+  background:radial-gradient(circle at top left,rgba(214,40,57,.16),transparent 26%),
+              radial-gradient(circle at top right,rgba(245,166,91,.10),transparent 24%),
+              linear-gradient(180deg,#07080c,#0b0e13 36%,#050608)}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;
+  background:repeating-linear-gradient(180deg,transparent,transparent 2px,rgba(255,255,255,.018) 2px,rgba(255,255,255,.018) 4px);z-index:30}
+.screen{display:none;height:100vh;position:relative;z-index:1}.screen.active{display:flex}.hidden{display:none!important}
+
+/* ── Topbar ── */
+.topbar{height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;
+  background:rgba(11,14,19,.86);border-bottom:1px solid var(--line);backdrop-filter:blur(10px);flex-shrink:0}
+.topbar-left{display:flex;gap:12px;align-items:center;font:500 11px/1 var(--mono);letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
+.topbar-right{font:500 11px/1.6 var(--mono);letter-spacing:.12em;color:var(--amber)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--red);box-shadow:0 0 12px rgba(214,40,57,.45)}
+
+/* ── Typography helpers ── */
+.title-line{display:flex;align-items:center;gap:10px;margin-bottom:14px;font:500 10px/1 var(--mono);letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
+.title-line::after{content:"";flex:1;height:1px;background:var(--line)}
+.badge{display:inline-flex;align-items:center;gap:8px;padding:5px 10px;font:500 10px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;border:1px solid var(--line2)}
+.red{color:#ff8590}.amber{color:var(--amber)}.green{color:var(--green)}.blue{color:var(--blue)}
+
+/* ── Buttons ── */
+.btn,.ghost,.mic{border:none;cursor:pointer;transition:.18s ease}
+.btn:hover,.ghost:hover,.mic:hover{transform:translateY(-1px)}
+.btn:disabled,.ghost:disabled,.mic:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.btn{padding:14px 26px;background:linear-gradient(90deg,var(--red),#9f1f2f);color:#fff;
+  font:600 15px/1 var(--head);letter-spacing:.12em;text-transform:uppercase;
+  clip-path:polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,0 100%)}
+.ghost{padding:12px 18px;background:transparent;border:1px solid var(--line2);color:var(--txt);
+  font:500 11px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase}
+.mic{width:50px;height:50px;border-radius:10px;background:var(--panel2);border:1px solid rgba(245,166,91,.3);
+  color:var(--amber);font-size:20px;position:relative}
+.mic.ready{border-color:rgba(245,166,91,.6);background:rgba(245,166,91,.08)}
+.mic.recording{background:rgba(214,40,57,.2);color:#fff;border-color:rgba(214,40,57,.5);
+  animation:mic-pulse 1.2s infinite ease-in-out}
+@keyframes mic-pulse{0%,100%{box-shadow:0 0 0 0 rgba(214,40,57,.4)}50%{box-shadow:0 0 0 10px rgba(214,40,57,0)}}
+
+/* ── Boot ── */
+#screen-boot{align-items:center;justify-content:center;flex-direction:column;gap:18px;text-align:center;padding:28px}
+.boot-mark{font:600 clamp(50px,8vw,92px)/1 var(--head);letter-spacing:.08em;text-transform:uppercase}
+.boot-mark span{color:var(--red)}
+.boot-sub{font:500 11px/1.6 var(--mono);letter-spacing:.28em;color:var(--muted);text-transform:uppercase}
+.boot-count{font:600 clamp(88px,16vw,140px)/1 var(--head);color:var(--amber);animation:pulse .95s infinite ease-in-out}
+@keyframes pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(.95);opacity:.66}}
+.boot-log{width:min(540px,100%);padding:18px 20px;border:1px solid var(--line);background:rgba(9,12,17,.72);box-shadow:var(--shadow);text-align:left}
+.boot-line{font:400 11px/1.75 var(--mono);color:#a4b1c3;opacity:0;animation:fade .35s forwards}
+.boot-line span{color:var(--green)}
+@keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+/* ── Brief ── */
+#screen-brief,#screen-interview,#screen-report{flex-direction:column}
+.brief-body{flex:1;display:grid;grid-template-columns:360px 1fr;min-height:0}
+.brief-side,.brief-main{overflow:auto;padding:28px 24px 32px}
+.brief-side{border-right:1px solid var(--line);background:linear-gradient(180deg,rgba(255,255,255,.02),rgba(255,255,255,.01))}
+.stamp{display:inline-block;padding:7px 16px;margin-bottom:22px;border:2px solid var(--red);color:var(--red);
+  font:600 20px/1 var(--head);letter-spacing:.16em;text-transform:uppercase;transform:rotate(-3deg)}
+.profile{display:flex;gap:14px;margin-bottom:20px}
+.avatar{width:72px;height:72px;display:grid;place-items:center;flex-shrink:0;
+  background:linear-gradient(180deg,rgba(214,40,57,.15),rgba(214,40,57,.03));
+  border:1px solid rgba(214,40,57,.26);color:var(--red);font:600 28px/1 var(--head)}
+.pname{font:500 24px/1.05 var(--head);margin-bottom:6px}
+.prole{font-size:13px;line-height:1.7;color:rgba(243,239,231,.74);margin-bottom:9px}
+.tags{display:flex;flex-wrap:wrap;gap:8px}
+.tag{padding:4px 9px;border:1px solid var(--line2);background:rgba(255,255,255,.02);
+  font:500 10px/1 var(--mono);color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
+.block{margin-bottom:18px}
+.label{margin-bottom:6px;font:500 10px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.value{font-size:13px;line-height:1.8;color:rgba(243,239,231,.76)}
+.risk{margin-top:22px;padding:16px;background:rgba(214,40,57,.06);border:1px solid rgba(214,40,57,.16)}
+.risk-item{position:relative;padding-left:14px;margin-bottom:8px;font-size:12px;line-height:1.7;color:rgba(243,239,231,.62)}
+.risk-item:last-child{margin-bottom:0}
+.risk-item::before{content:"•";position:absolute;left:0;color:var(--red)}
+.brief-main{display:flex;flex-direction:column;gap:18px}
+.card{border:1px solid var(--line);background:rgba(21,27,36,.82);box-shadow:var(--shadow)}
+.card-head{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 18px;border-bottom:1px solid var(--line)}
+.card-head h3{font:500 13px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.resume{width:100%;min-height:200px;padding:18px;background:transparent;border:none;outline:none;resize:none;color:var(--txt);font:400 14px/1.85 var(--body)}
+.resume::placeholder{color:#566174}
+.resume-hint{padding:8px 18px 14px;font:400 11px/1.7 var(--mono);color:var(--muted);letter-spacing:.06em}
+.resume-hint span{color:var(--amber)}
+.analysis{display:grid;grid-template-columns:1.1fr .9fr;gap:16px;padding:18px}
+.box{min-height:160px;padding:16px;background:rgba(255,255,255,.02);border:1px solid var(--line)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{padding:4px 10px;background:rgba(245,166,91,.12);border:1px solid rgba(245,166,91,.24);color:var(--amber);font:500 10px/1 var(--mono);letter-spacing:.08em}
+.empty{font:400 12px/1.8 var(--mono);color:#566174}
+.projects{display:grid;gap:10px}
+.project{padding:12px;background:rgba(255,255,255,.02);border:1px solid var(--line)}
+.project h4{font:500 17px/1.2 var(--head);margin-bottom:4px}
+.project p{font-size:12px;line-height:1.75;color:rgba(243,239,231,.72)}
+.modes{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;padding:18px}
+.mode{padding:16px;border:1px solid var(--line);background:rgba(255,255,255,.02);cursor:pointer;transition:.2s}
+.mode:hover{border-color:var(--line2);background:rgba(255,255,255,.04)}
+.mode.active{border-color:rgba(214,40,57,.34);background:rgba(214,40,57,.08)}
+.mode h4{font:500 18px/1 var(--head);margin-bottom:6px}
+.mode p{font-size:12px;line-height:1.7;color:var(--muted)}
+.mode-badge{display:inline-block;margin-top:8px;padding:2px 7px;font:600 9px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase}
+.mode-badge.standard{background:rgba(98,211,148,.12);color:var(--green);border:1px solid rgba(98,211,148,.2)}
+.mode-badge.pressure{background:rgba(214,40,57,.12);color:var(--red);border:1px solid rgba(214,40,57,.2)}
+.mode-badge.board{background:rgba(91,196,245,.12);color:var(--blue);border:1px solid rgba(91,196,245,.2)}
+.brief-foot{display:flex;align-items:center;justify-content:space-between;gap:18px}
+.hint{font:400 11px/1.8 var(--mono);letter-spacing:.08em;color:var(--muted)}
+.error{font:500 11px/1.7 var(--mono);letter-spacing:.06em;color:#ff8390;margin-top:6px}
+
+/* ── HUD ── */
+.hud{height:66px;display:grid;grid-template-columns:120px 120px 1fr 200px;
+  background:rgba(11,14,19,.88);border-bottom:1px solid var(--line);flex-shrink:0}
+.hud-block{padding:0 20px;display:flex;flex-direction:column;justify-content:center;border-right:1px solid var(--line)}
+.hud-label{font:500 10px/1 var(--mono);letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:5px}
+.hud-value{font:500 24px/1 var(--head)}
+.pressure{display:flex;align-items:center;gap:12px}
+.ptrack{flex:1;height:6px;background:#212936}
+.pfill{height:100%;width:0;background:var(--green);transition:width .4s ease,background .3s ease}
+.pfill.mid{background:var(--amber)}.pfill.high{background:var(--red);animation:flash .8s infinite ease-in-out}
+@keyframes flash{0%,100%{opacity:1}50%{opacity:.55}}
+.qdots{display:flex;align-items:center;gap:8px}
+.qdot{width:10px;height:10px;border-radius:50%;background:#2a3341}
+.qdot.done{background:rgba(98,211,148,.45)}.qdot.active{background:var(--red);box-shadow:0 0 14px rgba(214,40,57,.4)}
+
+/* ── Interview layout ── */
+.interview-body{flex:1;display:grid;grid-template-columns:300px 1fr;min-height:0}
+.side{border-right:1px solid var(--line);background:rgba(21,27,36,.86);display:flex;flex-direction:column;min-height:0}
+.agent{padding:22px 20px 18px;border-bottom:1px solid var(--line)}
+.agent-row{display:flex;gap:14px}
+.agent-av{width:56px;height:56px;display:grid;place-items:center;
+  background:linear-gradient(180deg,rgba(214,40,57,.18),rgba(214,40,57,.04));
+  border:1px solid rgba(214,40,57,.24);color:var(--red);font:600 24px/1 var(--head);flex-shrink:0}
+.agent h4{font:500 18px/1.1 var(--head);margin-bottom:4px}.agent p{font-size:12px;line-height:1.7;color:var(--muted)}
+.live{padding:18px 20px;border-bottom:1px solid var(--line)}
+.score-row{margin-bottom:12px}.score-row:last-child{margin-bottom:0}
+.score-top{display:flex;justify-content:space-between;margin-bottom:6px;font:500 11px/1 var(--mono)}
+.score-top span:first-child{color:#abb5c1}.score-top span:last-child{color:var(--txt)}
+.sbar{height:4px;background:#1f2733}.sfill{height:100%;width:0;transition:width .4s ease,background .3s ease}
+.log{flex:1;min-height:0;overflow:auto;padding:16px 18px 22px}
+.log::-webkit-scrollbar,.stage::-webkit-scrollbar{width:6px}
+.log::-webkit-scrollbar-thumb,.stage::-webkit-scrollbar-thumb{background:#26303d}
+.entry{margin-bottom:12px;border-left:1px solid var(--line);padding-left:10px}
+.entry h5{font:500 10px/1.4 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--red);margin-bottom:4px}
+.entry p{font-size:11px;line-height:1.7;color:rgba(243,239,231,.55)}
+
+/* ── Stage ── */
+.main{display:flex;flex-direction:column;min-height:0}
+.stage{flex:1;min-height:0;overflow:auto;padding:26px 28px 18px;display:flex;flex-direction:column;gap:16px}
+.scene{align-self:flex-start}
+.qcard,.acard,.fcard,.tcard{border:1px solid var(--line);box-shadow:var(--shadow)}
+.qcard{background:rgba(21,27,36,.88);border-left:3px solid var(--red);padding:22px 24px}
+.qmeta{display:flex;justify-content:space-between;gap:16px;align-items:center;margin-bottom:14px}
+.qwho{display:flex;align-items:center;gap:8px;font:500 11px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.qtype{padding:4px 8px;border:1px solid var(--line2);font:500 10px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.qdynamic{padding:3px 7px;background:rgba(91,196,245,.1);border:1px solid rgba(91,196,245,.25);color:var(--blue);font:500 9px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase}
+.qtext{font:400 27px/1.52 var(--head);min-height:52px}
+.qsub{margin-top:14px;padding-top:12px;border-top:1px solid var(--line);font:500 11px/1.7 var(--mono);letter-spacing:.06em;color:#d2af86}
+.acard{align-self:flex-end;width:min(78%,720px);background:rgba(255,255,255,.03);padding:14px 16px;font-size:14px;line-height:1.85;color:rgba(243,239,231,.82)}
+.fcard{background:rgba(12,15,20,.86);border-left:3px solid var(--amber)}
+.fhead{display:flex;justify-content:space-between;gap:20px;align-items:center;padding:12px 16px;border-bottom:1px solid var(--line)}
+.ftitle{font:500 10px/1 var(--mono);letter-spacing:.18em;text-transform:uppercase;color:var(--amber)}
+.fscore{font:600 24px/1 var(--head)}
+.fbody{padding:16px}
+.fitem{display:flex;gap:10px;margin-bottom:10px;font-size:13px;line-height:1.8}
+.fitem:last-child{margin-bottom:0}.ficon{width:14px;flex-shrink:0}
+.ftags{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
+.ftag{padding:4px 8px;border:1px solid var(--line2);font:500 10px/1 var(--mono);color:var(--muted)}
+/* 语音分析卡片内嵌 */
+.speech-row{display:flex;gap:16px;margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
+.speech-item{flex:1;text-align:center}
+.speech-val{font:600 18px/1 var(--head);margin-bottom:3px}
+.speech-lbl{font:500 9px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.tcard{display:flex;align-items:center;gap:12px;align-self:flex-start;padding:16px 18px;background:rgba(21,27,36,.72)}
+.tdots{display:flex;gap:5px}
+.tdots span{width:7px;height:7px;border-radius:50%;background:var(--red);animation:bounce .9s infinite ease-in-out}
+.tdots span:nth-child(2){animation-delay:.12s}.tdots span:nth-child(3){animation-delay:.24s}
+@keyframes bounce{0%,100%{opacity:.28;transform:translateY(0)}35%{opacity:1;transform:translateY(-4px)}}
+.ttxt{font:500 10px/1.4 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+
+/* ── Composer ── */
+.composer{padding:16px 24px 18px;border-top:1px solid var(--line);background:rgba(11,14,19,.92);flex-shrink:0}
+.meters{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:10px}
+.meter{display:flex;align-items:center;gap:8px}
+.meter label{font:500 10px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.mbar{width:66px;height:4px;background:#1f2733}
+.mfill{height:100%;width:0;background:var(--red);transition:width .24s ease,background .24s ease}
+.mfill.mid{background:var(--amber)}.mfill.high{background:var(--green)}
+.mcount{margin-left:auto;font:500 11px/1 var(--mono);color:var(--muted)}
+
+/* 语音主控区 */
+.voice-zone{display:flex;align-items:stretch;gap:0;margin-bottom:10px;border:1px solid var(--line2);background:rgba(255,255,255,.02)}
+.voice-status{flex:1;padding:10px 14px;display:flex;flex-direction:column;gap:4px}
+.voice-main{display:flex;align-items:center;gap:10px}
+.voice-dot{width:8px;height:8px;border-radius:50%;background:#667285;transition:.3s;flex-shrink:0}
+.voice-dot.active{background:var(--red);box-shadow:0 0 10px rgba(214,40,57,.5);animation:blink 1s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.4}}
+.voice-state{font:500 11px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.voice-hint{font:400 11px/1.5 var(--mono);color:#566174;letter-spacing:.04em}
+.voice-stats{display:flex;gap:16px;margin-top:4px}
+.vstat{font:500 10px/1 var(--mono);color:var(--muted)}
+.vstat span{color:var(--amber)}
+.voice-btn-wrap{display:flex;align-items:center;padding:10px 14px;border-left:1px solid var(--line)}
+
+.crow{display:flex;gap:10px;align-items:flex-end}
+.input{flex:1;min-height:60px;max-height:140px;padding:12px 14px;resize:none;
+  background:var(--panel);border:1px solid var(--line2);outline:none;color:var(--txt);font:400 14px/1.8 var(--body)}
+.input:focus{border-color:rgba(214,40,57,.35)}.input::placeholder{color:#566174}
+.actions{display:flex;gap:8px;flex-shrink:0}
+
+/* ── Report ── */
+.report-wrap{flex:1;overflow:auto;padding:40px 22px 54px}
+.report-inner{width:min(960px,100%);margin:0 auto}
+.rclass{display:flex;gap:18px;align-items:center;margin-bottom:30px}
+.rstamp{padding:8px 18px;border:3px solid var(--red);color:var(--red);font:600 28px/1 var(--head);letter-spacing:.2em;text-transform:uppercase;transform:rotate(-4deg)}
+.rid{font:500 11px/1.9 var(--mono);letter-spacing:.06em;color:var(--muted)}
+.hero{display:grid;grid-template-columns:190px 1fr;gap:28px;padding:26px;border:1px solid var(--line);background:rgba(21,27,36,.88);margin-bottom:24px}
+.hero-score{font:600 102px/.9 var(--head);color:var(--red)}
+.hero-score.mid{color:var(--amber)}.hero-score.high{color:var(--green)}
+.hero-score span{font-size:32px;opacity:.35}
+.hero-title{font:500 34px/1.1 var(--head);margin-bottom:8px}
+.hero-summary{font-size:14px;line-height:1.9;color:rgba(243,239,231,.74);margin-bottom:16px}
+.rgrid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.rbox{padding:18px;border:1px solid var(--line);background:rgba(21,27,36,.78);margin-bottom:24px}
+.bullet{display:flex;gap:10px;margin-bottom:10px;font-size:13px;line-height:1.8;color:rgba(243,239,231,.72)}
+.bullet:last-child{margin-bottom:0}
+.chart{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;align-items:end;height:170px}
+.col{display:flex;flex-direction:column;align-items:center;gap:8px}
+.bar{width:100%;height:120px;background:#222a35;position:relative;overflow:hidden}
+.fill{position:absolute;left:0;right:0;bottom:0;background:var(--red)}
+.clabel,.cscore{font:500 11px/1 var(--mono);color:var(--muted)}
+/* 语音报告卡 */
+.speech-report{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px}
+.speech-card{padding:12px 14px;background:rgba(255,255,255,.02);border:1px solid var(--line);text-align:center}
+.speech-card .val{font:600 22px/1 var(--head);margin-bottom:4px}
+.speech-card .lbl{font:500 9px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+
+@media(max-width:1100px){html,body{overflow:auto}.screen{min-height:100vh;height:auto}.brief-body,.interview-body,.analysis,.hero,.rgrid{grid-template-columns:1fr}.hud{grid-template-columns:1fr 1fr}.modes{grid-template-columns:1fr}.acard{width:100%}}
+@media(max-width:720px){.topbar,.brief-side,.brief-main,.stage,.composer,.report-wrap{padding-left:16px;padding-right:16px}.topbar{height:auto;flex-direction:column;align-items:flex-start;gap:12px;padding-top:14px;padding-bottom:14px}.crow{flex-direction:column}.actions{width:100%}.actions .btn,.actions .ghost{flex:1}.qtext{font-size:22px}}
+</style>
+</head>
+<body>
+
+<!-- ═══════════ BOOT ═══════════ -->
+<div class="screen active" id="screen-boot">
+  <div class="boot-mark">PM<span> //</span> PROTOCOL</div>
+  <div class="boot-sub">Mission Briefing Interface / Product Manager Interview Simulator</div>
+  <div class="boot-count" id="bootCount">3</div>
+  <div class="boot-log" id="bootLog"></div>
+</div>
+
+<!-- ═══════════ BRIEF ═══════════ -->
+<div class="screen" id="screen-brief">
+  <div class="topbar">
+    <div class="topbar-left"><span class="dot"></span><span>Mission Briefing</span><span>Product Manager Only</span></div>
+    <div class="topbar-right" id="sessionId">SESSION //</div>
+  </div>
+  <div class="brief-body">
+    <aside class="brief-side">
+      <div class="stamp">Classified</div>
+      <div class="title-line">Interviewer Dossier</div>
+      <div class="profile">
+        <div class="avatar">陈</div>
+        <div>
+          <div class="pname">陈志远</div>
+          <div class="prole">前大厂增长产品负责人 / 12年经验 / 擅长在项目细节里识别真正的产品判断。</div>
+          <div class="tags"><span class="tag">Data Driven</span><span class="tag">Deep Drill</span><span class="tag">Pressure Mode</span></div>
+        </div>
+      </div>
+      <div class="block"><div class="label">Interview Style</div><div class="value">不会满足于"我们做了一个项目"，会追问你为什么选这个目标、你亲自做了什么、结果为什么成立，以及副作用是什么。</div></div>
+      <div class="block"><div class="label">Assessment Focus</div><div class="value">问题定义、用户理解、指标设计、方案判断、项目推进、结果复盘。</div></div>
+      <div class="risk">
+        <div class="title-line" style="margin-bottom:12px">High Risk Signals</div>
+        <div class="risk-item">把团队成果直接等同于个人贡献，没有边界。</div>
+        <div class="risk-item">只说"优化体验"但没有目标指标和验证口径。</div>
+        <div class="risk-item">只讲做了什么，不讲为什么选这个方案。</div>
+        <div class="risk-item">只讲成功，不讲失败、取舍和副作用。</div>
+      </div>
+    </aside>
+
+    <main class="brief-main">
+      <!-- 简历输入 -->
+      <div class="card">
+        <div class="card-head">
+          <h3>Candidate Input</h3>
+          <span class="badge amber" id="resumeBadge">使用示例简历</span>
+        </div>
+        <textarea id="resumeInput" class="resume" spellcheck="false"
+          placeholder="在此粘贴你的产品经理经历，系统将基于你的真实项目生成面试题。&#10;&#10;如果不填写，将使用内置示例简历开始面试。"></textarea>
+        <div class="resume-hint">💡 当前使用：<span id="resumeHintText">内置示例简历（字节跳动 · 小红书）</span></div>
+      </div>
+
+      <!-- 简历解析结果 -->
+      <div class="card">
+        <div class="card-head"><h3>Resume Parsing</h3><span class="badge green" id="analysisBadge">正在识别项目...</span></div>
+        <div class="analysis">
+          <div class="box">
+            <div class="title-line">Keywords</div>
+            <div class="chips" id="keywordList"></div>
+            <div class="empty" id="keywordEmpty">系统会从简历里抓取项目、指标、动作词和方法论关键词。</div>
+          </div>
+          <div class="box">
+            <div class="title-line">Drill Targets</div>
+            <div class="chips" id="focusList"></div>
+            <div class="empty" id="focusEmpty">识别到项目后，会自动生成"可追问锚点"：指标、职责、方案、复盘。</div>
+          </div>
+        </div>
+        <div style="padding:0 18px 18px">
+          <div class="box">
+            <div class="title-line">Project Intelligence</div>
+            <div class="projects" id="projectList"></div>
+            <div class="empty" id="projectEmpty">输入后将自动整理核心项目，面试会优先围绕这些项目深挖。</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 面试模式 -->
+      <div class="card">
+        <div class="card-head"><h3>Interview Intensity</h3><span class="badge red">5 rounds / AI dynamic drill / voice analysis</span></div>
+        <div class="modes" id="modeGrid">
+          <div class="mode active" data-mode="standard">
+            <h4>标准模式</h4>
+            <p>专业节奏，考察结构、数据、判断、复盘四维度。面试官会基于你的回答进行针对性追问。</p>
+            <span class="mode-badge standard">Standard</span>
+          </div>
+          <div class="mode" data-mode="pressure">
+            <h4>压力模式</h4>
+            <p>高强度追问数据真实性和个人贡献边界。语速和停顿会纳入评判，模拟大厂真实压力面。</p>
+            <span class="mode-badge pressure">Pressure</span>
+          </div>
+          <div class="mode" data-mode="board">
+            <h4>总监模式</h4>
+            <p>考察全局视野、战略判断和资源取舍。像 P8 终面，重点看宏观发展方向的思考深度。</p>
+            <span class="mode-badge board">Director</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="brief-foot">
+        <div>
+          <div class="hint">🎙 面试过程中默认开启语音输入，系统会分析你的语速、逻辑和表达质量。</div>
+          <div class="error" id="briefError"></div>
+        </div>
+        <button class="btn" id="launchBtn">Launch Mission</button>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- ═══════════ INTERVIEW ═══════════ -->
+<div class="screen" id="screen-interview">
+  <div class="topbar">
+    <div class="topbar-left"><span class="dot"></span><span>Live Interview</span><span id="currentModeTag">Standard</span></div>
+    <div class="topbar-right" id="voiceCapability">VOICE //</div>
+  </div>
+  <div class="hud">
+    <div class="hud-block"><div class="hud-label">Round</div><div class="hud-value red" id="hudRound">1/5</div></div>
+    <div class="hud-block"><div class="hud-label">Last Score</div><div class="hud-value" id="hudScore">--</div></div>
+    <div class="hud-block"><div class="hud-label">Pressure Index</div><div class="pressure"><div class="ptrack"><div class="pfill" id="pressureFill"></div></div><div class="hud-value" style="font-size:20px" id="pressureValue">08</div></div></div>
+    <div class="hud-block"><div class="hud-label">Mission Progress</div><div class="qdots" id="questionDots"></div></div>
+  </div>
+  <div class="interview-body">
+    <aside class="side">
+      <div class="agent">
+        <div class="agent-row">
+          <div class="agent-av">Q</div>
+          <div><h4>Qiao Ren</h4><p>增长产品总监 / 善于在项目细节里识别真正的产品判断。</p></div>
+        </div>
+      </div>
+      <div class="live">
+        <div class="title-line" style="margin-bottom:16px">Live Dimension Score</div>
+        <div class="score-row"><div class="score-top"><span>结构表达</span><span id="dimText-structure">0</span></div><div class="sbar"><div class="sfill" id="dimBar-structure"></div></div></div>
+        <div class="score-row"><div class="score-top"><span>数据意识</span><span id="dimText-data">0</span></div><div class="sbar"><div class="sfill" id="dimBar-data"></div></div></div>
+        <div class="score-row"><div class="score-top"><span>产品判断</span><span id="dimText-judgment">0</span></div><div class="sbar"><div class="sfill" id="dimBar-judgment"></div></div></div>
+        <div class="score-row"><div class="score-top"><span>复盘深度</span><span id="dimText-retro">0</span></div><div class="sbar"><div class="sfill" id="dimBar-retro"></div></div></div>
+        <!-- 语音分 -->
+        <div class="score-row" id="speechScoreRow" style="display:none">
+          <div class="score-top"><span>语言表达</span><span id="dimText-speech" style="color:var(--blue)">0</span></div>
+          <div class="sbar"><div class="sfill" id="dimBar-speech" style="background:var(--blue)"></div></div>
+        </div>
+      </div>
+      <div class="log" id="scriptLog"><div class="title-line" style="margin-bottom:14px">Script Log</div></div>
+    </aside>
+    <main class="main">
+      <div class="stage" id="stage"></div>
+      <div class="composer">
+        <div class="meters">
+          <div class="meter"><label>Word</label><div class="mbar"><div class="mfill" id="meterWord"></div></div></div>
+          <div class="meter"><label>Metric</label><div class="mbar"><div class="mfill" id="meterMetric"></div></div></div>
+          <div class="meter"><label>Structure</label><div class="mbar"><div class="mfill" id="meterStructure"></div></div></div>
+          <div class="meter"><label>Ownership</label><div class="mbar"><div class="mfill" id="meterOwnership"></div></div></div>
+          <div class="mcount" id="meterCount">0 字</div>
+        </div>
+        <!-- 语音控制区 -->
+        <div class="voice-zone">
+          <div class="voice-status">
+            <div class="voice-main">
+              <div class="voice-dot" id="voiceDot"></div>
+              <span class="voice-state" id="voiceStateText">语音模块待机中</span>
+            </div>
+            <div class="voice-stats" id="voiceStatsRow" style="display:none">
+              <span class="vstat">语速 <span id="statCPM">--</span> 字/分钟</span>
+              <span class="vstat">时长 <span id="statDur">0</span>s</span>
+              <span class="vstat">停顿 <span id="statPause">0</span> 次</span>
+            </div>
+            <div class="voice-hint" id="voiceHintText">点击麦克风开始语音输入，系统将自动分析语速与表达质量</div>
+          </div>
+          <div class="voice-btn-wrap">
+            <button class="mic" id="micBtn" title="开始/停止语音输入">🎙</button>
+          </div>
+        </div>
+        <div class="crow">
+          <textarea id="answerInput" class="input" rows="3"
+            placeholder="点击上方麦克风开始语音输入，或直接在此输入文字。回答建议围绕：背景 / 目标 / 你的动作 / 结果 / 复盘。" spellcheck="false"></textarea>
+          <div class="actions">
+            <button class="ghost" id="clearBtn">Clear</button>
+            <button class="btn" id="submitBtn">Submit</button>
+          </div>
+        </div>
+        <div class="error" id="interviewError" style="margin-top:8px"></div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- ═══════════ REPORT ═══════════ -->
+<div class="screen" id="screen-report">
+  <div class="topbar">
+    <div class="topbar-left"><span class="dot"></span><span>Final Classified Dossier</span></div>
+    <div class="topbar-right" id="reportDate">REPORT //</div>
+  </div>
+  <div class="report-wrap">
+    <div class="report-inner">
+      <div class="rclass"><div class="rstamp">Final File</div><div class="rid" id="reportMeta"></div></div>
+      <div id="reportContent"></div>
+      <button class="ghost" id="restartBtn" style="margin-top:28px">Restart Mission</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─────────────────────────────────────────
+// 配置
+// ─────────────────────────────────────────
+const API_BASE = "http://127.0.0.1:5000";
+
+const DEFAULT_RESUME = `产品经理个人简历（模拟案例）
+姓名：赵哲远  意向：资深产品经理 / 产品专家
+核心优势：5年互联网产品经验，主导过两款千万级DAU产品的核心增长模块。擅长从0-1搭建复杂业务系统，对数据极其敏感，习惯通过A/B测试和用户行为路径分析驱动产品决策。
+
+工作经历
+1. 字节跳动 · 抖音电商部 · 资深产品经理 (2021.03 - 至今)
+流量分发策略优化：重新定义直播间"实时互动质量"权重指标，引入用户留存时长与评论情感极性因子。上线后流量分配精准度提升22%，直播间次看留存率提升15%。
+大促活动产品化：主导"双11"互动玩法设计（红包雨、战队PK），社交裂变带动新增用户300万+，活动ROI达到3.8。
+商家端工具升级：从0-1构建智能话术辅助系统，利用LLM为中小商家提供实时弹幕回复建议，覆盖率60%，转化率提升8%。
+
+2. 小红书 · 社区产品部 · 产品经理 (2018.07 - 2021.02)
+内容风控引擎：搭建基于用户信用分的动态审核流，高风险内容自动阻断率从75%提升至92%，人工审核成本减少40%。
+搜索增长优化：通过搜索无结果词语义聚类推动推荐补全迭代，搜索跳出率降低12个百分点。
+
+项目经历
+AI驱动用户流失预警系统 (2022.06-2022.12)：针对电商用户留存率下滑，主导开发机器学习预警及干预平台。定义42个核心维度，设计分梯度触达策略。试点期间召回18%潜在流失用户，月度增量GMV达1200万元。`;
+
+const TOTAL_ROUNDS = 5;
+const modeConfig = {
+  standard: { label: "Standard",  pressureStep: 10 },
+  pressure: { label: "Pressure",  pressureStep: 16 },
+  board:    { label: "Board",     pressureStep: 13 }
+};
+const bootLines = [
+  "加载 PM 面试任务协议...",
+  "连接 AI 动态追问引擎...",
+  "初始化语音分析模块...",
+  "解析候选人项目档案...",
+  "系统就绪，准备开始任务。"
+];
+
+// ─────────────────────────────────────────
+// 状态
+// ─────────────────────────────────────────
+const state = {
+  mode: "standard", sessionId: "", parsed: null,
+  questions: [], currentIndex: 0, pressure: 8,
+  feedbacks: [], answers: [],
+  previousQA: [],   // 每轮 {question, answer, score, weakest_dim}
+  // 语音相关
+  recognition: null, speechSupported: false,
+  isRecording: false, transcriptDraft: "",
+  typingTimer: null, voiceEnabled: true,
+  // 语速统计
+  recordStartTime: 0, recordDuration: 0,
+  rawTranscript: "", pauseCount: 0,
+  lastSpeechTime: 0, charCount: 0,
+  // 当前 speech_data（提交时用）
+  currentSpeechData: null
+};
+
+// DOM 引用
+const els = {
+  boot:el("screen-boot"),bootCount:el("bootCount"),bootLog:el("bootLog"),
+  brief:el("screen-brief"),interview:el("screen-interview"),report:el("screen-report"),
+  sessionId:el("sessionId"),
+  resumeInput:el("resumeInput"),resumeBadge:el("resumeBadge"),resumeHintText:el("resumeHintText"),
+  keywordList:el("keywordList"),keywordEmpty:el("keywordEmpty"),
+  focusList:el("focusList"),focusEmpty:el("focusEmpty"),
+  projectList:el("projectList"),projectEmpty:el("projectEmpty"),
+  analysisBadge:el("analysisBadge"),briefError:el("briefError"),
+  launchBtn:el("launchBtn"),modeGrid:el("modeGrid"),
+  currentModeTag:el("currentModeTag"),voiceCapability:el("voiceCapability"),
+  hudRound:el("hudRound"),hudScore:el("hudScore"),
+  pressureFill:el("pressureFill"),pressureValue:el("pressureValue"),
+  questionDots:el("questionDots"),scriptLog:el("scriptLog"),stage:el("stage"),
+  answerInput:el("answerInput"),
+  meterWord:el("meterWord"),meterMetric:el("meterMetric"),
+  meterStructure:el("meterStructure"),meterOwnership:el("meterOwnership"),
+  meterCount:el("meterCount"),
+  micBtn:el("micBtn"),clearBtn:el("clearBtn"),submitBtn:el("submitBtn"),
+  interviewError:el("interviewError"),
+  voiceDot:el("voiceDot"),voiceStateText:el("voiceStateText"),voiceHintText:el("voiceHintText"),
+  voiceStatsRow:el("voiceStatsRow"),statCPM:el("statCPM"),statDur:el("statDur"),statPause:el("statPause"),
+  speechScoreRow:el("speechScoreRow"),dimTextSpeech:el("dimText-speech"),dimBarSpeech:el("dimBar-speech"),
+  reportDate:el("reportDate"),reportMeta:el("reportMeta"),reportContent:el("reportContent"),
+  restartBtn:el("restartBtn")
+};
+
+const dims = {
+  structure:{t:el("dimText-structure"),b:el("dimBar-structure")},
+  data:{t:el("dimText-data"),b:el("dimBar-data")},
+  judgment:{t:el("dimText-judgment"),b:el("dimBar-judgment")},
+  retro:{t:el("dimText-retro"),b:el("dimBar-retro")}
+};
+
+function el(id){ return document.getElementById(id); }
+
+// ─────────────────────────────────────────
+// API
+// ─────────────────────────────────────────
+async function apiPost(path, body){
+  const res = await fetch(`${API_BASE}${path}`,{
+    method:"POST", headers:{"Content-Type":"application/json"},
+    body:JSON.stringify(body)
+  });
+  if(!res.ok){ const err=await res.json().catch(()=>({})); throw new Error(err.error||`HTTP ${res.status}`); }
+  return res.json();
+}
+
+// ─────────────────────────────────────────
+// 初始化
+// ─────────────────────────────────────────
+async function init(){
+  try{
+    const r = await fetch(`${API_BASE}/api/session_id`);
+    const d = await r.json();
+    state.sessionId = d.session_id;
+  } catch { state.sessionId = Math.random().toString(36).slice(2,8).toUpperCase(); }
+  els.sessionId.textContent = `SESSION // ${state.sessionId}`;
+  boot();
+  bind();
+  setupSpeech();
+  // 用默认简历初始化解析
+  await parseResume(DEFAULT_RESUME);
+}
+
+function bind(){
+  let parseTimer = null;
+  els.resumeInput.addEventListener("input", ()=>{
+    const text = els.resumeInput.value.trim();
+    // 用户输入时：显示"使用自定义简历"，无内容时回到默认
+    if(text){
+      els.resumeBadge.textContent = "使用自定义简历";
+      els.resumeHintText.textContent = "使用你输入的简历";
+    } else {
+      els.resumeBadge.textContent = "使用示例简历";
+      els.resumeHintText.textContent = "内置示例简历（字节跳动 · 小红书）";
+    }
+    clearTimeout(parseTimer);
+    parseTimer = setTimeout(()=>parseResume(text || DEFAULT_RESUME), 700);
+  });
+  els.launchBtn.addEventListener("click", launch);
+  els.modeGrid.addEventListener("click", pickMode);
+  els.answerInput.addEventListener("input", ()=>{ autosize(); updateMeters(); });
+  els.answerInput.addEventListener("keydown", e=>{
+    if(e.key==="Enter"&&(e.ctrlKey||e.metaKey)){ e.preventDefault(); submitAnswer(); }
+  });
+  els.submitBtn.addEventListener("click", submitAnswer);
+  els.clearBtn.addEventListener("click", clearInput);
+  els.micBtn.addEventListener("click", toggleMic);
+  els.restartBtn.addEventListener("click", restart);
+}
+
+function boot(){
+  let i=0;
+  const lt=setInterval(()=>{
+    if(i>=bootLines.length){clearInterval(lt);return}
+    const line=document.createElement("div");
+    line.className="boot-line";
+    line.innerHTML=`<span>ACCESS //</span> ${bootLines[i]}`;
+    els.bootLog.appendChild(line); i++;
+  },340);
+  let count=3;
+  const timer=setInterval(()=>{
+    count--;
+    if(count>0){els.bootCount.textContent=count;return}
+    clearInterval(timer); els.bootCount.textContent="GO";
+    setTimeout(()=>{ els.boot.classList.remove("active"); els.brief.classList.add("active"); },520);
+  },860);
+}
+
+// ─────────────────────────────────────────
+// 简历解析
+// ─────────────────────────────────────────
+async function parseResume(text){
+  try{
+    const parsed = await apiPost("/api/parse_resume",{text});
+    state.parsed = parsed;
+    renderAnalysis(parsed);
+  } catch(e){ els.briefError.textContent=`简历解析失败：${e.message}`; }
+}
+
+function renderAnalysis(parsed){
+  els.keywordList.innerHTML=""; els.focusList.innerHTML=""; els.projectList.innerHTML="";
+  toggle(els.keywordEmpty,!parsed.keywords.length);
+  toggle(els.focusEmpty,!parsed.focusPoints.length);
+  toggle(els.projectEmpty,!parsed.projects.length);
+  parsed.keywords.forEach(v=>els.keywordList.insertAdjacentHTML("beforeend",`<span class="chip">${safe(v)}</span>`));
+  parsed.focusPoints.forEach(v=>els.focusList.insertAdjacentHTML("beforeend",
+    `<span class="chip" style="background:rgba(98,211,148,.12);border-color:rgba(98,211,148,.24);color:var(--green)">${safe(v)}</span>`));
+  parsed.projects.forEach(p=>{
+    els.projectList.insertAdjacentHTML("beforeend",
+      `<div class="project"><h4>${safe(p.title)}</h4><p>${safe(p.summary.slice(0,120))}${p.summary.length>120?'...':''}</p>
+       <div class="tags" style="margin-top:10px">
+         ${p.metrics.slice(0,2).map(v=>`<span class="tag">${safe(v)}</span>`).join("")}
+         ${p.focus.slice(0,2).map(v=>`<span class="tag">${safe(v)}</span>`).join("")}
+       </div></div>`);
+  });
+  els.analysisBadge.textContent = parsed.text
+    ? `已识别 ${parsed.projects.length} 个项目 · ${parsed.keywords.length} 个关键词`
+    : "AI dossier is waiting for input";
+}
+
+// ─────────────────────────────────────────
+// 模式
+// ─────────────────────────────────────────
+function pickMode(e){
+  const target=e.target.closest(".mode");
+  if(!target)return;
+  state.mode=target.dataset.mode;
+  [...els.modeGrid.querySelectorAll(".mode")].forEach(n=>n.classList.toggle("active",n===target));
+}
+
+// ─────────────────────────────────────────
+// 启动
+// ─────────────────────────────────────────
+async function launch(){
+  els.briefError.textContent="";
+  if(!state.parsed||!state.parsed.text){els.briefError.textContent="请先输入至少一段产品经理项目经历，再开始任务。";return}
+  els.launchBtn.disabled=true;
+  try{
+    // 第一题单独获取（后续动态获取）
+    const q = await apiPost("/api/get_question",{parsed:state.parsed,mode:state.mode,round_index:0,previous_qa:[]});
+    state.questions=[q];
+    state.currentIndex=0;
+    state.pressure = state.mode==="pressure"?22 : state.mode==="board"?14 : 8;
+    state.feedbacks=[]; state.answers=[]; state.previousQA=[];
+    els.currentModeTag.textContent=modeConfig[state.mode].label;
+    els.brief.classList.remove("active"); els.interview.classList.add("active");
+    prepareInterview();
+  } catch(e){ els.briefError.textContent=`启动失败：${e.message}`; }
+  finally{ els.launchBtn.disabled=false; }
+}
+
+// ─────────────────────────────────────────
+// 面试流程
+// ─────────────────────────────────────────
+function prepareInterview(){
+  els.stage.innerHTML="";
+  els.scriptLog.innerHTML=`<div class="title-line" style="margin-bottom:14px">Script Log</div>`;
+  els.answerInput.value=""; els.answerInput.style.height="";
+  els.interviewError.textContent=""; els.questionDots.innerHTML="";
+  Object.keys(dims).forEach(k=>paintDim(k,0));
+  for(let i=0;i<TOTAL_ROUNDS;i++)
+    els.questionDots.insertAdjacentHTML("beforeend",`<div class="qdot${i===0?" active":""}"></div>`);
+  setPressure(0,true); setHudScore(null); updateRound(); updateMeters();
+  renderQuestion(state.questions[0],true);
+  // 自动启动语音
+  setTimeout(()=>{ if(state.speechSupported) startMic(); },600);
+}
+
+function renderQuestion(q,fresh){
+  if(fresh) els.stage.insertAdjacentHTML("beforeend",`<div class="badge red scene">${q.scene}</div>`);
+  const id=`qt-${Date.now()}`;
+  const dynamicBadge = q.dynamic ? `<span class="qdynamic">AI动态追问</span>` : "";
+  els.stage.insertAdjacentHTML("beforeend",
+    `<div class="qcard"><div class="qmeta">
+      <div class="qwho"><span class="dot"></span><span>陈志远 / PM Director</span></div>
+      <div style="display:flex;gap:8px;align-items:center"><div class="qtype">${q.type}</div>${dynamicBadge}</div>
+    </div>
+    <div class="qtext" id="${id}"></div>
+    <div class="qsub">DRILL TARGET // ${q.hint}</div></div>`);
+  typewriter(el(id), q.text);
+  log(`Q${state.currentIndex+1} ${q.type}`,`${q.text} / 考察：${(q.focus||[]).join("、")}`);
+}
+
+async function submitAnswer(){
+  const answer=els.answerInput.value.trim();
+  els.interviewError.textContent="";
+  if(!answer||answer.length<15){els.interviewError.textContent="回答太短了，至少讲清楚背景、动作和结果中的两项。";return}
+  if(state.isRecording) stopMic();
+  els.submitBtn.disabled=true;
+
+  // 构建 speech_data
+  const speechData = state.currentSpeechData ? {...state.currentSpeechData} : null;
+  state.currentSpeechData=null;
+
+  const q=state.questions[state.currentIndex];
+  state.answers.push(answer);
+  els.stage.insertAdjacentHTML("beforeend",`<div class="acard">${safe(answer)}</div>`);
+  log(`A${state.currentIndex+1}`,answer);
+  els.answerInput.value=""; els.answerInput.style.height=""; updateMeters();
+
+  const typing=document.createElement("div");
+  typing.className="tcard";
+  typing.innerHTML=`<div class="tdots"><span></span><span></span><span></span></div><div class="ttxt">AI Analyzing your answer...</div>`;
+  els.stage.appendChild(typing); els.stage.scrollTop=els.stage.scrollHeight;
+
+  try{
+    const fb = await apiPost("/api/evaluate",{
+      answer, question:q, parsed:state.parsed,
+      mode:state.mode, round_index:state.currentIndex,
+      speech_data: speechData
+    });
+    typing.remove();
+    state.feedbacks.push(fb);
+    // 记录到 previousQA 供下一题动态追问
+    state.previousQA.push({
+      question:q.text, answer,
+      score:fb.total, weakest_dim:fb.weakest_dim||""
+    });
+    renderFeedback(fb);
+    setPressure(fb.delta); setHudScore(fb.total); paintAllDims();
+    if(fb.speech_quality){ paintSpeechScore(fb.speech_quality.score); }
+
+    state.currentIndex++;
+    if(state.currentIndex>=TOTAL_ROUNDS){ setTimeout(showReport,420); return; }
+    updateRound(); updateDots();
+
+    // 动态获取下一题
+    const nextQ = await apiPost("/api/get_question",{
+      parsed:state.parsed, mode:state.mode,
+      round_index:state.currentIndex, previous_qa:state.previousQA
+    });
+    state.questions.push(nextQ);
+    setTimeout(()=>{
+      renderQuestion(nextQ,true);
+      // 自动启动语音
+      setTimeout(()=>{ if(state.speechSupported) startMic(); },400);
+    },220);
+  } catch(e){
+    typing.remove();
+    els.interviewError.textContent=`评分失败：${e.message}`;
+  } finally{ els.submitBtn.disabled=false; }
+}
+
+function renderFeedback(fb){
+  const color=fb.total>=8?"var(--green)":fb.total>=6.5?"var(--amber)":"var(--red)";
+  let speechHtml="";
+  if(fb.speech_metrics){
+    const sm=fb.speech_metrics;
+    const sq=fb.speech_quality||{};
+    const sqColor=sq.score>=8?"var(--green)":sq.score>=6?"var(--amber)":"var(--red)";
+    speechHtml=`<div class="speech-row">
+      <div class="speech-item"><div class="speech-val" style="color:var(--blue)">${sm.chars_per_minute}</div><div class="speech-lbl">字/分钟</div></div>
+      <div class="speech-item"><div class="speech-val" style="color:var(--amber)">${sm.duration_seconds.toFixed(0)}s</div><div class="speech-lbl">回答时长</div></div>
+      <div class="speech-item"><div class="speech-val" style="color:${sqColor}">${sq.score||"--"}</div><div class="speech-lbl">表达质量</div></div>
+    </div>
+    ${sq.comment?`<div class="fitem" style="margin-top:8px"><span class="ficon" style="color:var(--blue)">🎙</span><span style="color:rgba(243,239,231,.6)">${safe(sq.comment)}</span></div>`:""}`;
+  }
+  els.stage.insertAdjacentHTML("beforeend",
+    `<div class="fcard"><div class="fhead">
+      <div class="ftitle">Instant Critique</div>
+      <div class="fscore" style="color:${color}">${fb.total}<span style="font-size:12px;opacity:.36"> /10</span></div>
+    </div><div class="fbody">
+      <div class="fitem"><span class="ficon" style="color:var(--green)">+</span><span>${safe(fb.strengths[0])}</span></div>
+      <div class="fitem"><span class="ficon" style="color:var(--amber)">!</span><span>${safe(fb.risks[0])}</span></div>
+      <div class="fitem"><span class="ficon" style="color:var(--red)">→</span><span>${safe(fb.next)}</span></div>
+      ${speechHtml}
+      <div class="ftags">${fb.tags.map(v=>`<span class="ftag">${safe(v)}</span>`).join("")}</div>
+    </div></div>`);
+  els.stage.scrollTop=els.stage.scrollHeight;
+}
+
+function paintSpeechScore(score){
+  els.speechScoreRow.style.display="";
+  els.dimTextSpeech.textContent=score.toFixed(1);
+  els.dimBarSpeech.style.width=`${score*10}%`;
+  els.dimBarSpeech.style.background=score>=8?"var(--green)":score>=6?"var(--amber)":"var(--red)";
+}
+
+// ─────────────────────────────────────────
+// 报告
+// ─────────────────────────────────────────
+async function showReport(){
+  els.interview.classList.remove("active"); els.report.classList.add("active");
+  els.reportDate.textContent=`REPORT // ${new Date().toLocaleString("zh-CN")}`;
+  els.reportMeta.innerHTML=`SYSTEM // PM INTERVIEW PROTOCOL v2.0<br>SESSION // ${state.sessionId}<br>MODE // ${modeConfig[state.mode].label} / ROUNDS // ${TOTAL_ROUNDS}`;
+  try{
+    const r = await apiPost("/api/report",{feedbacks:state.feedbacks,mode:state.mode,session_id:state.sessionId});
+    const avg=r.avg_score, verdict=r.verdict;
+    const scoreClass=avg>=8?"high":avg>=6.5?"mid":"";
+    const bars=state.feedbacks.map((fb,i)=>{
+      const color=fb.total>=8?"var(--green)":fb.total>=6.5?"var(--amber)":"var(--red)";
+      return `<div class="col"><div class="cscore">${fb.total}</div>
+        <div class="bar"><div class="fill" style="height:${fb.total*10}%;background:${color}"></div></div>
+        <div class="clabel">Q${i+1}</div></div>`;
+    }).join("");
+    const d=r.avg_dimensions;
+    const dimBullets=[["结构表达",d.structure],["数据意识",d.data],["产品判断",d.judgment],["复盘深度",d.retro]].map(([l,v])=>
+      `<div class="bullet"><span style="color:${v>=8?"var(--green)":v>=6.5?"var(--amber)":"var(--red)"}">•</span>
+       <span>${l}：${v.toFixed(1)} / 10，${v>=8?"表现突出":v>=6.5?"中等偏稳":"需要补强"}。</span></div>`).join("");
+
+    // 语音报告
+    let speechHtml="";
+    if(r.speech_avg!==null && r.speech_avg!==undefined){
+      const sq=r.speech_avg, sqColor=sq>=8?"var(--green)":sq>=6?"var(--amber)":"var(--red)";
+      const allSM=state.feedbacks.filter(f=>f.speech_metrics).map(f=>f.speech_metrics);
+      const avgCPM=allSM.length?Math.round(allSM.reduce((s,m)=>s+m.chars_per_minute,0)/allSM.length):null;
+      const avgDur=allSM.length?(allSM.reduce((s,m)=>s+m.duration_seconds,0)/allSM.length).toFixed(1):null;
+      speechHtml=`<div class="rbox" style="margin-bottom:24px">
+        <div class="title-line">Voice & Expression Analysis</div>
+        <div class="speech-report">
+          <div class="speech-card"><div class="val" style="color:${sqColor}">${sq}</div><div class="lbl">表达质量均分</div></div>
+          ${avgCPM?`<div class="speech-card"><div class="val" style="color:var(--blue)">${avgCPM}</div><div class="lbl">平均语速（字/分钟）</div></div>`:""}
+          ${avgDur?`<div class="speech-card"><div class="val" style="color:var(--amber)">${avgDur}s</div><div class="lbl">平均回答时长</div></div>`:""}
+        </div>
+        ${r.speech_summary?`<div class="bullet" style="margin-top:14px"><span style="color:var(--blue)">🎙</span><span>${safe(r.speech_summary)}</span></div>`:""}
+      </div>`;
+    }
+
+    els.reportContent.innerHTML=`
+      <div class="hero">
+        <div class="hero-score ${scoreClass}">${avg}<span>/10</span></div>
+        <div><div class="hero-title">${verdict.title}</div>
+          <div class="hero-summary">${verdict.summary}</div>
+          <span class="badge ${verdict.badge}">${verdict.hire}</span></div>
+      </div>
+      ${speechHtml}
+      <div class="rgrid">
+        <div class="rbox"><div class="title-line">Core Strengths</div>
+          ${(r.strengths||[]).map(v=>`<div class="bullet"><span style="color:var(--green)">+</span><span>${safe(v)}</span></div>`).join("")||dimBullets}
+        </div>
+        <div class="rbox"><div class="title-line">Primary Risks</div>
+          ${(r.risks||[]).map(v=>`<div class="bullet"><span style="color:var(--amber)">!</span><span>${safe(v)}</span></div>`).join("")}
+        </div>
+      </div>
+      <div class="rgrid">
+        <div class="rbox"><div class="title-line">Dimension Summary</div>${dimBullets}</div>
+        <div class="rbox"><div class="title-line">Round Curve</div><div class="chart">${bars}</div></div>
+      </div>
+      <div class="rbox">
+        <div class="title-line">Final Recommendation</div>
+        <div class="bullet"><span style="color:var(--red)">→</span><span>${safe(r.recommendation)}</span></div>
+      </div>`;
+  } catch(e){
+    els.reportContent.innerHTML=`<div class="error">报告生成失败：${e.message}</div>`;
+  }
+}
+
+// ─────────────────────────────────────────
+// 语音模块（带语速统计）
+// ─────────────────────────────────────────
+function setupSpeech(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  state.speechSupported=Boolean(SR);
+  if(!state.speechSupported){
+    els.voiceCapability.textContent="VOICE // NOT SUPPORTED";
+    els.voiceStateText.textContent="浏览器不支持语音识别";
+    els.voiceHintText.textContent="请使用 Chrome / Edge 浏览器以启用语音输入功能";
+    els.micBtn.disabled=true;
+    return;
+  }
+  els.voiceCapability.textContent="VOICE // WEB SPEECH API";
+  els.micBtn.classList.add("ready");
+
+  const rec=new SR();
+  rec.lang="zh-CN"; rec.continuous=true; rec.interimResults=true;
+
+  rec.onstart=()=>{
+    state.isRecording=true;
+    state.recordStartTime=Date.now();
+    state.rawTranscript="";
+    state.pauseCount=0;
+    state.lastSpeechTime=Date.now();
+    state.charCount=0;
+    els.micBtn.classList.add("recording");
+    els.voiceDot.classList.add("active");
+    els.voiceStateText.textContent="🔴 语音转写进行中";
+    els.voiceHintText.textContent="再次点击麦克风即可停止并保留转写内容";
+    els.voiceStatsRow.style.display="";
+  };
+
+  rec.onresult=e=>{
+    let finalText=state.transcriptDraft, interim="";
+    for(let i=e.resultIndex;i<e.results.length;i++){
+      const t=e.results[i][0].transcript;
+      if(e.results[i].isFinal){
+        finalText+=t;
+        state.rawTranscript+=t;
+        // 停顿检测（超过1.5s无新结果算停顿）
+        const now=Date.now();
+        if(state.lastSpeechTime && (now-state.lastSpeechTime)>1500) state.pauseCount++;
+        state.lastSpeechTime=now;
+      } else interim+=t;
+    }
+    state.transcriptDraft=finalText;
+    const combined=`${finalText}${interim}`.trim();
+    els.answerInput.value=combined;
+    state.charCount=combined.replace(/\s+/g,"").length;
+    autosize(); updateMeters();
+    // 实时更新语速
+    updateVoiceStats();
+  };
+
+  rec.onerror=e=>{
+    state.isRecording=false;
+    els.micBtn.classList.remove("recording");
+    els.voiceDot.classList.remove("active");
+    els.voiceStateText.textContent=`语音中断：${e.error}`;
+    els.voiceHintText.textContent="如浏览器拒绝麦克风权限，请重新授权后再试";
+  };
+
+  rec.onend=()=>{
+    if(!state.isRecording)return;
+    state.isRecording=false;
+    state.recordDuration=(Date.now()-state.recordStartTime)/1000;
+    els.micBtn.classList.remove("recording");
+    els.voiceDot.classList.remove("active");
+    els.voiceStateText.textContent="语音转写已停止";
+    els.voiceHintText.textContent="可手动补充内容，或直接点击 Submit 提交";
+    // 保存 speech_data
+    saveSpeechData();
+  };
+
+  state.recognition=rec;
+}
+
+function updateVoiceStats(){
+  if(!state.recordStartTime)return;
+  const dur=(Date.now()-state.recordStartTime)/1000;
+  const cpm=dur>0?Math.round((state.charCount/dur)*60):0;
+  els.statCPM.textContent=cpm;
+  els.statDur.textContent=dur.toFixed(0);
+  els.statPause.textContent=state.pauseCount;
+}
+
+function saveSpeechData(){
+  const dur=state.recordDuration||((Date.now()-state.recordStartTime)/1000);
+  if(dur>0 && state.charCount>0){
+    state.currentSpeechData={
+      raw_transcript:state.rawTranscript||els.answerInput.value,
+      duration_seconds:dur,
+      char_count:state.charCount,
+      pause_count:state.pauseCount,
+      chars_per_minute:Math.round((state.charCount/dur)*60)
+    };
+  }
+}
+
+function startMic(){
+  if(!state.speechSupported||state.isRecording)return;
+  state.transcriptDraft=els.answerInput.value.trim();
+  try{ state.recognition.start(); }
+  catch(err){ els.interviewError.textContent="麦克风启动失败，请检查浏览器权限。"; }
+}
+
+function stopMic(){
+  if(!state.recognition||!state.isRecording)return;
+  state.isRecording=false;
+  state.recordDuration=(Date.now()-state.recordStartTime)/1000;
+  state.recognition.stop();
+  saveSpeechData();
+}
+
+function toggleMic(){
+  if(!state.speechSupported)return;
+  if(state.isRecording){ stopMic(); } else { startMic(); }
+}
+
+// ─────────────────────────────────────────
+// UI 工具
+// ─────────────────────────────────────────
+function updateMeters(){
+  const text=els.answerInput.value, chars=text.replace(/\s+/g,"").length;
+  meter(els.meterWord,clamp(chars/120*100,0,100));
+  meter(els.meterMetric,/\d+(?:\.\d+)?%|\d+(?:\.\d+)?(?:万|千|亿|天|周|月|次)/.test(text)?100:/提升|下降|留存|转化|增长|成本/.test(text)?62:10);
+  meter(els.meterStructure,/(背景|目标|首先|然后|最后|结果|复盘|当时)/.test(text)?100:/(因为|所以|结果)/.test(text)?68:14);
+  meter(els.meterOwnership,/(我负责|我主导|我推动|我设计|我判断|我协调|我复盘)/.test(text)?100:/我们/.test(text)?45:10);
+  els.meterCount.textContent=`${chars} 字`;
+}
+function meter(node,val){node.style.width=`${val}%`;node.className="mfill";if(val>=80)node.classList.add("high");else if(val>=45)node.classList.add("mid")}
+function autosize(){els.answerInput.style.height="auto";els.answerInput.style.height=`${Math.min(els.answerInput.scrollHeight,140)}px`}
+function clearInput(){if(state.isRecording)stopMic();els.answerInput.value="";state.transcriptDraft="";autosize();updateMeters();els.interviewError.textContent="";state.currentSpeechData=null}
+function updateRound(){els.hudRound.textContent=`${Math.min(state.currentIndex+1,TOTAL_ROUNDS)}/${TOTAL_ROUNDS}`}
+function updateDots(){[...els.questionDots.children].forEach((dot,i)=>{dot.className="qdot";if(i<state.currentIndex)dot.classList.add("done");if(i===state.currentIndex)dot.classList.add("active")})}
+function setHudScore(score){if(score===null){els.hudScore.textContent="--";els.hudScore.className="hud-value";return}els.hudScore.textContent=score.toFixed(1);els.hudScore.className=`hud-value ${score>=8?"green":score>=6.5?"amber":"red"}`}
+function setPressure(delta,reset){
+  state.pressure=reset?state.pressure:clamp(state.pressure+(delta||0),0,100);
+  els.pressureFill.style.width=`${state.pressure}%`;
+  els.pressureValue.textContent=String(Math.round(state.pressure)).padStart(2,"0");
+  els.pressureFill.className="pfill";
+  if(state.pressure>=70)els.pressureFill.classList.add("high");else if(state.pressure>=40)els.pressureFill.classList.add("mid");
+}
+function paintAllDims(){const avg=calcAvgDims();Object.entries(avg).forEach(([k,v])=>paintDim(k,v))}
+function paintDim(key,val){dims[key].t.textContent=val.toFixed?val.toFixed(1):val;dims[key].b.style.width=`${val*10}%`;dims[key].b.style.background=val>=8?"var(--green)":val>=6.5?"var(--amber)":"var(--red)"}
+function calcAvgDims(){if(!state.feedbacks.length)return{structure:0,data:0,judgment:0,retro:0};const out={structure:0,data:0,judgment:0,retro:0};state.feedbacks.forEach(f=>Object.keys(out).forEach(k=>out[k]+=f.dimensions[k]||0));Object.keys(out).forEach(k=>out[k]=Number((out[k]/state.feedbacks.length).toFixed(1)));return out}
+function typewriter(node,text){clearInterval(state.typingTimer);node.textContent="";let i=0;state.typingTimer=setInterval(()=>{node.textContent+=text[i];i++;els.stage.scrollTop=els.stage.scrollHeight;if(i>=text.length)clearInterval(state.typingTimer)},18)}
+function log(title,text){els.scriptLog.insertAdjacentHTML("beforeend",`<div class="entry"><h5>${safe(title)}</h5><p>${safe(text)}</p></div>`);els.scriptLog.scrollTop=els.scriptLog.scrollHeight}
+async function restart(){if(state.isRecording)stopMic();state.currentIndex=0;state.pressure=8;state.feedbacks=[];state.answers=[];state.questions=[];state.previousQA=[];els.report.classList.remove("active");els.brief.classList.add("active");await parseResume(DEFAULT_RESUME)}
+function toggle(node,show){node.classList.toggle("hidden",!show)}
+function clamp(v,min,max){return Math.max(min,Math.min(max,v))}
+function safe(v){return String(v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;")}
+
+init();
+</script>
+</body>
+</html>
